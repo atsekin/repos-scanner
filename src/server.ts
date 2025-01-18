@@ -13,6 +13,7 @@ import Env from '@src/common/Env';
 import HttpStatusCodes from '@src/common/HttpStatusCodes';
 import { RouteError } from '@src/common/route-errors';
 import { NodeEnvs } from '@src/common/constants';
+import githubApiClient from '@src/githubApiClient';
 
 
 /******************************************************************************
@@ -75,6 +76,56 @@ app.get('/users', (_: Request, res: Response) => {
   return res.sendFile('users.html', { root: viewsDir });
 });
 
+app.get('/repos', async (_: Request, res: Response) => {
+  try {
+    const response = await githubApiClient.get('/user/repos');
+    const data = response.data.map(({ name, size, owner: { login } }) => ({
+      name,
+      size,
+      owner: login,
+    }));
+    res.json(data);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Failed to fetch repos' });
+  }
+});
+
+app.get('/repos/:repoName', async (req: Request, res: Response) => {
+  try {
+    const { repoName } = req.params;
+    const response = await githubApiClient.get(`/repos/atsekin/${repoName}`);
+    const {
+      name,
+      size,
+      owner: { login },
+      private: isPrivate,
+    } = response.data;
+    const contents = await githubApiClient.get(`/repos/atsekin/${repoName}/git/trees/master?recursive=1`);
+    const files = contents.data.tree.filter(({ type }) => type === 'blob');
+    const filesCount = files.length;
+
+    const ymlFilePath = files.find(({ path }) => path.endsWith('.yml'))?.path;
+    const ymlFile = await githubApiClient.get(`/repos/atsekin/${repoName}/contents/${ymlFilePath}`);
+    const ymlContent = Buffer.from(ymlFile.data.content, 'base64').toString('utf-8');
+
+    const webHooks = await githubApiClient.get(`/repos/atsekin/${repoName}/hooks`);
+
+    const data = ({
+      name,
+      size,
+      owner: login,
+      isPrivate,
+      filesCount,
+      ymlContent: ymlContent,
+      webHooks: webHooks.data,
+    });
+    res.json(data);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Failed to fetch repos' });
+  }
+});
 
 /******************************************************************************
                                 Export default
