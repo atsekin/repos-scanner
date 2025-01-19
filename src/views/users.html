@@ -65,6 +65,7 @@
       </div>
 
       <div id="all-users-anchor"></div>
+      <div id="all-repos-anchor"></div>
       <script
         id="all-users-template"
         type="text/x-handlebars-template"
@@ -124,9 +125,55 @@
           </div>
         {{/each}}
       </script>
+      <script
+        id="all-repos-template"
+        type="text/x-handlebars-template"
+      >
+        {{#each repos}}
+          <div class="user-display-ele">
+            <div class="normal-view">
+              <div><b>Name:</b> {{name}}</div>
+              <div><b>Size:</b> {{size}}</div>
+              <div><b>Owner:</b> {{owner}}</div>
+              <button
+                type="button"
+                class="btn btn-primary"
+                data-repo="{{name}}"
+                onclick="loadRepoDetails('{{name}}')"
+              >
+                View details
+              </button>
+            </div>
+          </div>
+          <div id="repo-details-{{name}}"></div>
+        {{/each}}
+      </script>
+      <script
+        id="repo-details-template"
+        type="text/x-handlebars-template"
+      >
+        <div class="user-display-ele">
+          <div class="normal-view">
+            <div><b>Name:</b> {{name}}</div>
+            <div><b>Size:</b> {{size}}</div>
+            <div><b>Owner:</b> {{owner}}</div>
+            <div><b>Is private:</b> {{isPrivate}}</div>
+            <div><b>Files count:</b> {{filesCount}}</div>
+            <div><b>Active web hooks:</b>
+              {{#each webHooks}}
+                <div>{{name}}</div>
+              {{/each}}
+            </div>
+            <div><b>Yml file content:</b></div>
+            <code>
+              <pre>{{ymlContent}}</pre>
+            </code>
+          </div>
+        </div>
+      </script>
     </div>
   </body>
-
+  <script src="scripts/index.js"></script>
   <script src="scripts/http.js"></script>
   <script src="scripts/users.js"></script>
 </html>
