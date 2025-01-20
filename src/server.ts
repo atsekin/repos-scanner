@@ -18,11 +18,15 @@ import HttpStatusCodes from '@src/common/HttpStatusCodes';
 import { RouteError } from '@src/common/route-errors';
 import { NodeEnvs } from '@src/common/constants';
 import githubApiClient from '@src/githubApiClient';
-
+import Bottleneck from 'bottleneck';
 
 /******************************************************************************
                                 Variables
 ******************************************************************************/
+
+const limiter = new Bottleneck({
+  maxConcurrent: 2,
+});
 
 const app = express();
 
@@ -115,6 +119,60 @@ const typeDefs = `
   }
 `;
 
+const getRepoDetails = async (repoName: string) => {
+  try {
+    const [response, contents, webHooksResponse] = await Promise.all([
+      githubApiClient.get(`/repos/atsekin/${repoName}`),
+      githubApiClient.get(`/repos/atsekin/${repoName}/git/trees/master?recursive=1`),
+      githubApiClient.get(`/repos/atsekin/${repoName}/hooks`),
+    ]);
+
+    const {
+      name,
+      size,
+      owner: { login },
+      private: isPrivate,
+    } = response.data;
+
+    const files = contents.data.tree.filter(({ type }) => type === 'blob');
+    const filesCount = files.length;
+
+    const ymlFilePath = files.find(({ path }) => path.endsWith('.yml'))?.path;
+    let ymlContent = null;
+
+    if (ymlFilePath) {
+      const ymlFile = await githubApiClient.get(`/repos/atsekin/${repoName}/contents/${ymlFilePath}`);
+      ymlContent = Buffer.from(ymlFile.data.content, 'base64').toString('utf-8');
+    }
+
+    const webHooks = webHooksResponse.data
+      .filter(({ active }) => active)
+      .map(({ id, name, active, config }) => ({
+          id,
+          name,
+          active,
+          config: {
+            url: config.url,
+            contentType: config.content_type,
+          },
+        }
+      ));
+
+    return {
+      name,
+      size,
+      owner: login,
+      isPrivate,
+      filesCount,
+      ymlContent,
+      webHooks,
+    };
+  } catch (error) {
+    console.error(error);
+    throw new Error('Failed to fetch repository details');
+  }
+};
+
 const resolvers = {
   Query: {
     repos: async () => {
@@ -131,54 +189,8 @@ const resolvers = {
       }
     },
     repoDetails: async (_: any, { repoName }: { repoName: string }) => {
-      try {
-        const response = await githubApiClient.get(`/repos/atsekin/${repoName}`);
-        const {
-          name,
-          size,
-          owner: { login },
-          private: isPrivate,
-        } = response.data;
-
-        const contents = await githubApiClient.get(`/repos/atsekin/${repoName}/git/trees/master?recursive=1`);
-        const files = contents.data.tree.filter(({ type }) => type === 'blob');
-        const filesCount = files.length;
-
-        const ymlFilePath = files.find(({ path }) => path.endsWith('.yml'))?.path;
-        let ymlContent = null;
-
-        if (ymlFilePath) {
-          const ymlFile = await githubApiClient.get(`/repos/atsekin/${repoName}/contents/${ymlFilePath}`);
-          ymlContent = Buffer.from(ymlFile.data.content, 'base64').toString('utf-8');
-        }
-
-        const webHooksResponse = await githubApiClient.get(`/repos/atsekin/${repoName}/hooks`);
-        const webHooks = webHooksResponse.data
-          .filter(({ active }) => active)
-          .map(({ id, name, active, config }) => ({
-            id,
-            name,
-            active,
-            config: {
-              url: config.url,
-              contentType: config.content_type,
-            },
-          }
-        ));
-
-        return {
-          name,
-          size,
-          owner: login,
-          isPrivate,
-          filesCount,
-          ymlContent,
-          webHooks,
-        };
-      } catch (error) {
-        console.error(error);
-        throw new Error('Failed to fetch repository details');
-      }
+      const result = await limiter.schedule(() => getRepoDetails(repoName));
+      return result;
     },
   },
 };
