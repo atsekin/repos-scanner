@@ -7,7 +7,7 @@ import { expressMiddleware } from '@apollo/server/express4';
 import { ApolloServer } from '@apollo/server';
 import bodyParser from 'body-parser';
 import cors from 'cors';
-
+import Bottleneck from 'bottleneck';
 import 'express-async-errors';
 
 import BaseRouter from '@src/routes';
@@ -18,7 +18,8 @@ import HttpStatusCodes from '@src/common/HttpStatusCodes';
 import { RouteError } from '@src/common/route-errors';
 import { NodeEnvs } from '@src/common/constants';
 import githubApiClient from '@src/githubApiClient';
-import Bottleneck from 'bottleneck';
+
+import { ContentsFileResponse, Repo, TreeResponse, WebHook } from '@src/types';
 
 /******************************************************************************
                                 Variables
@@ -122,9 +123,11 @@ const typeDefs = `
 const getRepoDetails = async (repoName: string) => {
   try {
     const [response, contents, webHooksResponse] = await Promise.all([
-      githubApiClient.get(`/repos/atsekin/${repoName}`),
-      githubApiClient.get(`/repos/atsekin/${repoName}/git/trees/master?recursive=1`),
-      githubApiClient.get(`/repos/atsekin/${repoName}/hooks`),
+      githubApiClient.get<Repo>(`/repos/atsekin/${repoName}`),
+      githubApiClient.get<TreeResponse>(
+        `/repos/atsekin/${repoName}/git/trees/master?recursive=1`
+      ),
+      githubApiClient.get<WebHook[]>(`/repos/atsekin/${repoName}/hooks`),
     ]);
 
     const {
@@ -141,13 +144,16 @@ const getRepoDetails = async (repoName: string) => {
     let ymlContent = null;
 
     if (ymlFilePath) {
-      const ymlFile = await githubApiClient.get(`/repos/atsekin/${repoName}/contents/${ymlFilePath}`);
+      const ymlFile = await githubApiClient.get<ContentsFileResponse>(
+        `/repos/atsekin/${repoName}/contents/${ymlFilePath}`,
+      );
       ymlContent = Buffer.from(ymlFile.data.content, 'base64').toString('utf-8');
     }
 
     const webHooks = webHooksResponse.data
       .filter(({ active }) => active)
-      .map(({ id, name, active, config }) => ({
+      .map(({ id, name, active, config }) => (
+        {
           id,
           name,
           active,
@@ -177,7 +183,7 @@ const resolvers = {
   Query: {
     repos: async () => {
       try {
-        const response = await githubApiClient.get('/user/repos');
+        const response = await githubApiClient.get<Repo[]>('/user/repos');
         return response.data.map(({ name, size, owner: { login } }) => ({
           name,
           size,
@@ -188,7 +194,7 @@ const resolvers = {
         throw new Error('Failed to fetch repositories');
       }
     },
-    repoDetails: async (_: any, { repoName }: { repoName: string }) => {
+    repoDetails: async (_: unknown, { repoName }: { repoName: string }) => {
       const result = await limiter.schedule(() => getRepoDetails(repoName));
       return result;
     },
