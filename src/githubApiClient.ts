@@ -1,5 +1,7 @@
 import axios from 'axios';
 
+const token = process.env.GITHUB_KEY;
+
 const githubApiClient = axios.create({
   baseURL: 'https://api.github.com',
 });
@@ -7,7 +9,6 @@ const githubApiClient = axios.create({
 // Добавляем интерсептор запросов
 githubApiClient.interceptors.request.use(
   (config) => {
-    const token = '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';
     if (token) {
       config.headers.Authorization = `token ${token}`;
     }
