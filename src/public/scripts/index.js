@@ -1,7 +1,5 @@
-
-
 const loadRepos = () => {
-  fetch('http://localhost:3000/graphql', {
+  fetch('/graphql', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -31,7 +29,7 @@ const loadRepos = () => {
 };
 
 const loadRepoDetails = (repoName) => {
-  fetch('http://localhost:3000/graphql', {
+  fetch('/graphql', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -54,12 +52,9 @@ const loadRepoDetails = (repoName) => {
   })
     .then(response => response.json())
     .then(({ data }) => {
-      console.log('GraphQL Response:', data);
       const repoDetailsTemplate = document.getElementById('repo-details-template');
       const repoDetailsTemplateHtml = repoDetailsTemplate.innerHTML;
       const template = Handlebars.compile(repoDetailsTemplateHtml);
-
-      console.log(template(data.repoDetails));
 
       const repoDetailsAnchor = document.getElementById(`repo-details-${repoName}`);
       repoDetailsAnchor.innerHTML = template(data.repoDetails);

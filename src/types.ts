@@ -13,7 +13,7 @@ export interface WebHook {
   active: boolean;
   config: {
     url: string,
-    content_type: string,
+    contentType: string,
   };
 }
 
