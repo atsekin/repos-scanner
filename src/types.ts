@@ -24,10 +24,8 @@ export interface TreeNode {
 
 export interface TreeResponse {
   tree: TreeNode[];
-};
+}
 
 export interface ContentsFileResponse {
-  data: {
-    content: string,
-  };
+  content: string;
 }

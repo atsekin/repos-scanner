@@ -125,7 +125,7 @@ const getRepoDetails = async (repoName: string) => {
     const [response, contents, webHooksResponse] = await Promise.all([
       githubApiClient.get<Repo>(`/repos/atsekin/${repoName}`),
       githubApiClient.get<TreeResponse>(
-        `/repos/atsekin/${repoName}/git/trees/master?recursive=1`
+        `/repos/atsekin/${repoName}/git/trees/master?recursive=1`,
       ),
       githubApiClient.get<WebHook[]>(`/repos/atsekin/${repoName}/hooks`),
     ]);
@@ -147,7 +147,9 @@ const getRepoDetails = async (repoName: string) => {
       const ymlFile = await githubApiClient.get<ContentsFileResponse>(
         `/repos/atsekin/${repoName}/contents/${ymlFilePath}`,
       );
-      ymlContent = Buffer.from(ymlFile.data.content, 'base64').toString('utf-8');
+      ymlContent = Buffer.from(
+        ymlFile.data.content, 'base64',
+      ).toString('utf-8');
     }
 
     const webHooks = webHooksResponse.data
@@ -174,7 +176,7 @@ const getRepoDetails = async (repoName: string) => {
       webHooks,
     };
   } catch (error) {
-    console.error(error);
+    logger.err(error);
     throw new Error('Failed to fetch repository details');
   }
 };
@@ -190,7 +192,7 @@ const resolvers = {
           owner: login,
         }));
       } catch (error) {
-        console.error(error);
+        logger.err(error);
         throw new Error('Failed to fetch repositories');
       }
     },
