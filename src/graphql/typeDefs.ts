@@ -28,7 +28,9 @@ export const typeDefs = `
   }
 
   type Query {
-    repos: [Repository!]!
-    repoDetails(repoName: String!): RepositoryDetails
+    repos(token: String!): [Repository!]!
+    repoDetails(
+      repoName: String!, token: String!, repoOwner: String!
+    ): RepositoryDetails
   }
 `;

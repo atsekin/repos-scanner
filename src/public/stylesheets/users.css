@@ -15,6 +15,11 @@ body .users-column .column-header {
   font-size: 1.2em;
 }
 
+body .pat-form {
+  display: flex;
+  width: 300px;
+}
+
 
 /** Add User Column **/
 

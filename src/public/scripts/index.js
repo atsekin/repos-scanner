@@ -1,11 +1,13 @@
 const loadRepos = () => {
+  const token = sessionStorage.getItem('token');
+
   fetch('/graphql', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       query: `
       query {
-        repos {
+        repos(token: "${token}") {
           name
           size
           owner
@@ -28,14 +30,16 @@ const loadRepos = () => {
     .catch(error => console.error('Error:', error));
 };
 
-const loadRepoDetails = (repoName) => {
+const loadRepoDetails = (repoName, repoOwner) => {
+  const token = sessionStorage.getItem('token');
+
   fetch('/graphql', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       query: `
       query {
-        repoDetails(repoName: "${repoName}") {
+        repoDetails(repoName: "${repoName}", token: "${token}", repoOwner: "${repoOwner}") {
           name
           size
           owner
@@ -62,4 +66,10 @@ const loadRepoDetails = (repoName) => {
     .catch(error => console.error('Error:', error));
 }
 
-window.addEventListener('load', loadRepos);
+// window.addEventListener('load', loadRepos);
+document.getElementById('pat-form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const token = e.target.pat.value;
+  sessionStorage.setItem('token', token);
+  loadRepos();
+})

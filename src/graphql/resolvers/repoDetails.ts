@@ -8,14 +8,17 @@ const limiter = new Bottleneck({
   maxConcurrent: 2,
 });
 
-const getRepoDetails = async (repoName: string) => {
+const getRepoDetails = async (repoName: string, token: string, repoOwner: string) => {
   try {
+    const config = { headers: { Authorization: `token ${token}` } };
+
     const [response, contents, webHooksResponse] = await Promise.all([
-      githubApiClient.get<Repo>(`/repos/atsekin/${repoName}`),
+      githubApiClient.get<Repo>(`/repos/${repoOwner}/${repoName}`, config),
       githubApiClient.get<TreeResponse>(
-        `/repos/atsekin/${repoName}/git/trees/master?recursive=1`,
+        `/repos/${repoOwner}/${repoName}/git/trees/master?recursive=1`,
+        config,
       ),
-      githubApiClient.get<WebHook[]>(`/repos/atsekin/${repoName}/hooks`),
+      githubApiClient.get<WebHook[]>(`/repos/${repoOwner}/${repoName}/hooks`, config),
     ]);
 
     const { name, size, owner: { login }, private: isPrivate } = response.data;
@@ -27,7 +30,8 @@ const getRepoDetails = async (repoName: string) => {
 
     if (ymlFilePath) {
       const ymlFile = await githubApiClient.get<ContentsFileResponse>(
-        `/repos/atsekin/${repoName}/contents/${ymlFilePath}`,
+        `/repos/${repoOwner}/${repoName}/contents/${ymlFilePath}`,
+        config,
       );
       ymlContent = Buffer.from(
         ymlFile.data.content, 'base64',
@@ -62,7 +66,7 @@ const getRepoDetails = async (repoName: string) => {
 };
 
 export const repoDetailsResolver = async (
-  _: unknown, { repoName }: { repoName: string },
+  _: unknown, { repoName, token, repoOwner }: { repoName: string, token: string, repoOwner: string },
 ) => {
-  return await limiter.schedule(() => getRepoDetails(repoName));
+  return await limiter.schedule(() => getRepoDetails(repoName, token, repoOwner));
 };

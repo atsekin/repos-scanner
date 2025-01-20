@@ -29,16 +29,24 @@
 
 <!-- Display Repos -->
 <div class="users-column">
-  <div class="column-header">
-    Repos:
-  </div>
-
+  <form id="pat-form" class="pat-form">
+    <input class="form-control" type="password" name="pat" placeholder="Enter token...">
+    <button
+      type="submit"
+      class="btn btn-primary"
+    >Set</button>
+  </form>
+</>
+<div class="users-column">
   <div id="all-repos-anchor"></div>
 
   <script
     id="all-repos-template"
     type="text/x-handlebars-template"
   >
+    <div class="column-header">
+      Repos:
+    </div>
     {{#each repos}}
       <div class="user-display-ele">
         <div class="normal-view">
@@ -49,7 +57,7 @@
             type="button"
             class="btn btn-primary"
             data-repo="{{name}}"
-            onclick="loadRepoDetails('{{name}}')"
+            onclick="loadRepoDetails('{{name}}', '{{owner}}')"
           >
             View details
           </button>
